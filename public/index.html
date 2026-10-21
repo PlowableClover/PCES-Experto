@@ -11,37 +11,43 @@
     <div class="wrap">
       <p class="kicker">Sistema experto en Prolog · ESCOM · Paradigmas de Programación</p>
       <h1>Asistente de pre-evaluación PCES</h1>
-      <p class="lead">Marca las medidas que cumple una edificación y el sistema infiere el nivel de certificación
-        que alcanzaría en el <b>Programa de Certificación de Edificaciones Sustentables</b> de la Ciudad de México
-        (etapa de diseño y construcción), qué criterios obligatorios le faltan y qué podría agregar para subir de nivel.</p>
+      <p class="lead">Marca las medidas que tiene una edificación y el sistema infiere qué acciones de sustentabilidad del
+        <b>Programa de Certificación de Edificaciones Sustentables</b> de la Ciudad de México (2023) cubre, si cumple las
+        cuatro acciones mínimas para acreditar, qué le falta y qué indicadores y evidencias tendría que reportar.</p>
       <p class="aviso">Herramienta educativa de orientación. No sustituye la evaluación de un implementador acreditado por la SEDEMA.</p>
     </div>
   </header>
 
   <main class="wrap grid">
-    <section class="panel" aria-labelledby="t-criterios">
+    <section class="panel" aria-labelledby="t-datos">
+      <h2 id="t-datos">1. Datos de la edificación</h2>
+      <fieldset class="etapa">
+        <legend>Etapa de la edificación</legend>
+        <label><input type="radio" name="etapa" value="diseno" checked> Diseño y construcción</label>
+        <label><input type="radio" name="etapa" value="operacion"> Operación</label>
+      </fieldset>
       <div class="panel-head">
-        <h2 id="t-criterios">1. Criterios que cumple la edificación</h2>
-        <span class="contador" id="contador">0 seleccionados</span>
+        <h3>Medidas que tiene la edificación</h3>
+        <span class="contador" id="contador">0 seleccionadas</span>
       </div>
       <div class="acciones">
         <button type="button" class="sec" id="btn-caso" hidden>Cargar caso: casa Jalapa 124</button>
         <button type="button" class="sec" id="btn-limpiar">Limpiar selección</button>
       </div>
-      <div id="lista" class="lista"><p class="cargando">Cargando criterios desde Prolog…</p></div>
+      <div id="lista" class="lista"><p class="cargando">Cargando el catálogo desde Prolog…</p></div>
     </section>
 
     <section class="panel resultados" aria-labelledby="t-res" aria-live="polite">
       <h2 id="t-res">2. Conclusión del sistema experto</h2>
       <button type="button" class="pri" id="btn-evaluar">Evaluar edificación</button>
       <div id="salida">
-        <p class="vacio">Selecciona criterios y presiona <b>Evaluar edificación</b>. Puedes hacer todas las consultas que quieras sin recargar la página.</p>
+        <p class="vacio">Elige la etapa, marca las medidas y presiona <b>Evaluar edificación</b>. Puedes hacer todas las consultas que quieras sin recargar la página.</p>
       </div>
     </section>
   </main>
 
   <footer class="wrap pie">
-    Martínez Díaz Ian Arath · 3BM2 · Motor de inferencia: SWI-Prolog · Fuente normativa: PCES, Gaceta Oficial de la CDMX (2020)
+    Martínez Díaz Ian Arath · 3BM2 · Motor de inferencia: SWI-Prolog · Fuente normativa: PCES, Gaceta Oficial de la Ciudad de México, 6 de noviembre de 2023
   </footer>
   <script src="app.js"></script>
 </body>

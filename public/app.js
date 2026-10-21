@@ -1,13 +1,13 @@
 // Interfaz del Asistente PCES.
 // Solo envía datos al servidor y muestra lo que responde Prolog:
-// aquí no se calcula ningún nivel ni ninguna regla.
+// aquí no se decide ninguna conclusión.
 
-// Criterios que cumple la casa de Jalapa 124 (expediente PCES del CECyT 11).
+// Medidas de la casa de Jalapa 124 (expediente PCES del CECyT 11).
 // Escribe aquí los identificadores tal como los definiste en base_conocimiento.pl.
 const CASO_JALAPA = [];
 
 const $ = (s) => document.querySelector(s);
-let catalogo = [];
+let cat = { rubros: [], acciones: [], medidas: [] };
 
 const bonito = (x) => {
   const s = String(x ?? '').replace(/_/g, ' ');
@@ -15,48 +15,49 @@ const bonito = (x) => {
 };
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-async function cargarCriterios() {
+async function cargarCatalogo() {
   try {
-    const r = await fetch('/api/criterios');
+    const r = await fetch('/api/catalogo');
     if (!r.ok) throw new Error('HTTP ' + r.status);
-    const d = await r.json();
-    catalogo = d.criterios || [];
+    cat = await r.json();
     pintarLista();
   } catch (e) {
-    $('#lista').innerHTML = `<p class="error">No se pudo obtener el catálogo de criterios del servidor (${esc(e.message)}). Si el servicio estaba dormido, espera unos segundos y recarga.</p>`;
+    $('#lista').innerHTML = `<p class="error">No se pudo obtener el catálogo del servidor (${esc(e.message)}). Si el servicio estaba dormido, espera unos segundos y recarga.</p>`;
   }
 }
 
 function pintarLista() {
-  if (!catalogo.length) {
-    $('#lista').innerHTML = '<p class="error">La base de conocimientos no tiene criterios cargados.</p>';
+  if (!cat.medidas.length) {
+    $('#lista').innerHTML = '<p class="error">La base de conocimientos no tiene medidas cargadas.</p>';
     return;
   }
-  const porRubro = {};
-  catalogo.forEach((c) => (porRubro[c.rubro] ||= []).push(c));
-  $('#lista').innerHTML = Object.keys(porRubro).map((rubro) => `
+  const accion = Object.fromEntries(cat.acciones.map((a) => [a.id, a]));
+  const grupos = new Map(cat.rubros.map((r) => [r.id, { nombre: r.nombre, medidas: [] }]));
+  const otros = { nombre: 'Otras medidas', medidas: [] };
+  cat.medidas.forEach((m) => {
+    const rub = accion[m.acciones[0]]?.rubro;
+    (grupos.get(rub) || otros).medidas.push(m);
+  });
+  const lista = [...grupos.values(), otros].filter((g) => g.medidas.length);
+  $('#lista').innerHTML = lista.map((g) => `
     <fieldset class="rubro">
-      <legend>${esc(bonito(rubro))}</legend>
-      ${porRubro[rubro].map((c) => `
+      <legend>${esc(bonito(g.nombre))}</legend>
+      ${g.medidas.map((m) => `
         <label class="item">
-          <input type="checkbox" value="${esc(c.id)}">
-          <span class="nombre">${esc(bonito(c.nombre))}</span>
-          <span class="meta">${c.tipo === 'obligatorio' ? '<span class="badge">Obligatorio</span>' : ''}<span class="pts">${esc(c.puntos)} pts</span></span>
+          <input type="checkbox" value="${esc(m.id)}">
+          <span class="nombre">${esc(bonito(m.nombre))}
+            <small>${m.acciones.map((a) => esc(bonito(accion[a]?.nombre ?? a))).join(' · ')}</small></span>
         </label>`).join('')}
     </fieldset>`).join('');
   document.querySelectorAll('#lista input').forEach((i) => i.addEventListener('change', contar));
-  const validos = CASO_JALAPA.filter((id) => catalogo.some((c) => c.id === id));
-  $('#btn-caso').hidden = validos.length === 0;
+  $('#btn-caso').hidden = !CASO_JALAPA.some((id) => cat.medidas.some((m) => m.id === id));
   contar();
 }
 
-const seleccionados = () => [...document.querySelectorAll('#lista input:checked')].map((i) => i.value);
-const contar = () => { const n = seleccionados().length; $('#contador').textContent = `${n} seleccionado${n === 1 ? '' : 's'}`; };
-
-function marcar(ids) {
-  document.querySelectorAll('#lista input').forEach((i) => (i.checked = ids.includes(i.value)));
-  contar();
-}
+const seleccionadas = () => [...document.querySelectorAll('#lista input:checked')].map((i) => i.value);
+const etapa = () => document.querySelector('input[name="etapa"]:checked')?.value;
+const contar = () => { const n = seleccionadas().length; $('#contador').textContent = `${n} seleccionada${n === 1 ? '' : 's'}`; };
+const marcar = (ids) => { document.querySelectorAll('#lista input').forEach((i) => (i.checked = ids.includes(i.value))); contar(); };
 
 async function evaluar() {
   const btn = $('#btn-evaluar');
@@ -65,7 +66,7 @@ async function evaluar() {
     const r = await fetch('/api/evaluar', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ cumplidos: seleccionados() }),
+      body: JSON.stringify({ etapa: etapa(), medidas: seleccionadas() }),
     });
     const d = await r.json().catch(() => ({ ok: false, mensaje: 'Respuesta no válida del servidor.' }));
     mostrar(d);
@@ -76,12 +77,8 @@ async function evaluar() {
   }
 }
 
-function lista(titulo, items, vacio, clase) {
-  const cuerpo = items.length
-    ? `<ul class="${clase}">${items.map((x) => `<li><span>${esc(bonito(x.nombre))}</span>${x.puntos != null ? `<small>${esc(bonito(x.rubro))} · ${esc(x.puntos)} pts</small>` : ''}</li>`).join('')}</ul>`
-    : `<p class="nada">${vacio}</p>`;
-  return `<div class="bloque"><h3>${titulo} <span class="num">${items.length}</span></h3>${cuerpo}</div>`;
-}
+const bloque = (titulo, n, cuerpo) => `<div class="bloque"><h3>${titulo}${n == null ? '' : ` <span class="num">${n}</span>`}</h3>${cuerpo}</div>`;
+const ul = (items, clase, vacio) => items.length ? `<ul class="${clase}">${items.join('')}</ul>` : `<p class="nada">${vacio}</p>`;
 
 function mostrar(d) {
   const s = $('#salida');
@@ -89,21 +86,34 @@ function mostrar(d) {
     s.innerHTML = `<div class="alerta ${d.tipo === 'datos_incompletos' ? 'aviso2' : ''}">${esc(d.mensaje || 'Ocurrió un error.')}</div>`;
     return;
   }
-  const max = Math.max(1, ...d.rubros.map((r) => Number(r.puntos) || 0));
-  const nivel = d.nivel == null
-    ? `<div class="nivel sin"><span>Sin conclusión</span><p>${esc(d.mensaje)}</p></div>`
-    : `<div class="nivel n-${esc(String(d.nivel))}"><small>Nivel inferido</small><span>${esc(bonito(d.nivel))}</span><p>${esc(d.puntos)} puntos con ${esc(d.seleccionados)} criterios</p></div>`;
+  const dic = d.dictamen;
+  const clase = dic == null ? 'sin' : `d-${esc(String(dic))}`;
+  const etiqueta = dic == null ? 'Sin conclusión' : bonito(dic);
+  const av = d.avance ? `<p>${esc(d.avance.cubiertas)} de ${esc(d.avance.total)} acciones de sustentabilidad cubiertas</p>` : '';
+  const etapaTxt = d.etapa === 'operacion' ? 'operación' : 'diseño y construcción';
+
+  // Sugerencias agrupadas por acción (solo presentación)
+  const porAccion = {};
+  d.sugerencias.forEach((x) => (porAccion[x.accion_nombre] ||= []).push(x.medida_nombre));
+
   s.innerHTML = `
-    ${nivel}
-    ${d.explicacion.length ? `<div class="bloque"><h3>Por qué</h3><ul class="expl">${d.explicacion.map((t) => `<li>${esc(t)}</li>`).join('')}</ul></div>` : ''}
-    ${lista('Obligatorios que faltan', d.faltantes, 'No falta ningún criterio obligatorio.', 'falt')}
-    ${lista('Recomendaciones para subir de nivel', d.recomendaciones, 'El sistema no encontró recomendaciones para esta combinación.', 'rec')}
-    ${d.rubros.length ? `<div class="bloque"><h3>Puntos por rubro</h3>${d.rubros.map((r) => `
-      <div class="barra"><span>${esc(bonito(r.rubro))}</span><i style="--p:${(Number(r.puntos) || 0) / max * 100}%"></i><b>${esc(r.puntos)}</b></div>`).join('')}</div>` : ''}
+    <div class="nivel ${clase}"><small>Dictamen · etapa de ${etapaTxt}</small><span>${esc(etiqueta)}</span>${av}</div>
+    ${d.explicacion.length ? bloque('Por qué', null, ul(d.explicacion.map((t) => `<li>${esc(t)}</li>`), 'expl', '')) : ''}
+    ${bloque('Acciones mínimas faltantes', d.minimas_faltantes.length,
+      ul(d.minimas_faltantes.map((a) => `<li>${esc(bonito(a.nombre))}</li>`), 'falt', 'Cubre las cuatro acciones mínimas.'))}
+    ${bloque('Medidas sugeridas', d.sugerencias.length,
+      ul(Object.entries(porAccion).map(([a, ms]) => `<li><span>${esc(bonito(a))}</span><small>${ms.map((m) => esc(bonito(m))).join(' · ')}</small></li>`), 'rec', 'El sistema no tiene sugerencias para esta combinación.'))}
+    ${bloque('Acciones cubiertas', d.acciones_cubiertas.length,
+      ul(d.acciones_cubiertas.map((a) => `<li><span>${esc(bonito(a.nombre))}</span><small>${a.tipo ? esc(bonito(a.tipo)) : ''}</small></li>`), 'ok', 'Ninguna acción cubierta.'))}
+    ${d.rubros_sin_accion.length ? bloque('Rubros sin ninguna acción', d.rubros_sin_accion.length,
+      ul(d.rubros_sin_accion.map((r) => `<li>${esc(bonito(r.nombre))}</li>`), 'falt', '')) : ''}
+    ${d.indicadores.length ? bloque('Indicadores que deberá reportar', d.indicadores.length,
+      `<table class="tabla"><thead><tr><th>Acción</th><th>Indicador</th><th>Unidad</th></tr></thead><tbody>${d.indicadores.map((i) => `<tr><td>${esc(bonito(i.accion_nombre))}</td><td>${esc(i.indicador)}</td><td>${esc(i.unidad)}</td></tr>`).join('')}</tbody></table>`) : ''}
+    ${d.evidencias.length ? bloque(`Evidencias requeridas (${etapaTxt})`, d.evidencias.length, ul(d.evidencias.map((t) => `<li>${esc(t)}</li>`), 'expl', '')) : ''}
     <details class="json"><summary>Ver respuesta de Prolog (JSON)</summary><pre>${esc(JSON.stringify(d, null, 2))}</pre></details>`;
 }
 
 $('#btn-evaluar').addEventListener('click', evaluar);
-$('#btn-limpiar').addEventListener('click', () => { marcar([]); $('#salida').innerHTML = '<p class="vacio">Selección limpia. Marca criterios y vuelve a evaluar.</p>'; });
+$('#btn-limpiar').addEventListener('click', () => { marcar([]); $('#salida').innerHTML = '<p class="vacio">Selección limpia. Marca medidas y vuelve a evaluar.</p>'; });
 $('#btn-caso').addEventListener('click', () => marcar(CASO_JALAPA));
-cargarCriterios();
+cargarCatalogo();

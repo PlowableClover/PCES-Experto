@@ -7,6 +7,7 @@ COPY public ./public
 
 # Render (y otras plataformas) indican el puerto en la variable PORT
 ENV PORT=8080
+ENV LANG=C.UTF-8
 EXPOSE 8080
 
 CMD ["swipl", "/app/servidor.pl"]
