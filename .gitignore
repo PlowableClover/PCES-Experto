@@ -1,0 +1,16 @@
+# Registros y temporales
+*.log
+*~
+*.bak
+*.qlf
+# Sistema operativo
+.DS_Store
+Thumbs.db
+desktop.ini
+# Editores
+.vscode/
+.idea/
+# Secretos (nunca subirlos)
+.env
+*.pem
+*.key

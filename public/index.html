@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Asistente PCES · Sistema experto en Prolog</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="top">
+    <div class="wrap">
+      <p class="kicker">Sistema experto en Prolog · ESCOM · Paradigmas de Programación</p>
+      <h1>Asistente de pre-evaluación PCES</h1>
+      <p class="lead">Marca las medidas que cumple una edificación y el sistema infiere el nivel de certificación
+        que alcanzaría en el <b>Programa de Certificación de Edificaciones Sustentables</b> de la Ciudad de México
+        (etapa de diseño y construcción), qué criterios obligatorios le faltan y qué podría agregar para subir de nivel.</p>
+      <p class="aviso">Herramienta educativa de orientación. No sustituye la evaluación de un implementador acreditado por la SEDEMA.</p>
+    </div>
+  </header>
+
+  <main class="wrap grid">
+    <section class="panel" aria-labelledby="t-criterios">
+      <div class="panel-head">
+        <h2 id="t-criterios">1. Criterios que cumple la edificación</h2>
+        <span class="contador" id="contador">0 seleccionados</span>
+      </div>
+      <div class="acciones">
+        <button type="button" class="sec" id="btn-caso" hidden>Cargar caso: casa Jalapa 124</button>
+        <button type="button" class="sec" id="btn-limpiar">Limpiar selección</button>
+      </div>
+      <div id="lista" class="lista"><p class="cargando">Cargando criterios desde Prolog…</p></div>
+    </section>
+
+    <section class="panel resultados" aria-labelledby="t-res" aria-live="polite">
+      <h2 id="t-res">2. Conclusión del sistema experto</h2>
+      <button type="button" class="pri" id="btn-evaluar">Evaluar edificación</button>
+      <div id="salida">
+        <p class="vacio">Selecciona criterios y presiona <b>Evaluar edificación</b>. Puedes hacer todas las consultas que quieras sin recargar la página.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="wrap pie">
+    Martínez Díaz Ian Arath · 3BM2 · Motor de inferencia: SWI-Prolog · Fuente normativa: PCES, Gaceta Oficial de la CDMX (2020)
+  </footer>
+  <script src="app.js"></script>
+</body>
+</html>
