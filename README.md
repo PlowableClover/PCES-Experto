@@ -5,7 +5,7 @@ Sistema experto en **SWI-Prolog**, con interfaz web, que pre-evalúa una edifica
 Práctica integradora del primer parcial · Paradigmas de Programación · ESCOM-IPN
 Autor: Martínez Díaz Ian Arath (3BM2)
 
-- **Aplicación publicada:** _(pegar aquí la URL de Render)_
+- **Aplicación publicada:** https://pces-experto.onrender.com
 - **Fuente normativa:** Aviso por el cual se da a conocer el Programa de Certificación de Edificaciones Sustentables de la Ciudad de México, *Gaceta Oficial de la Ciudad de México*, 6 de noviembre de 2023 (deja sin efectos al programa de 2020). Rubros (numeral 9.1), indicadores (tablas 1 a 5) y acciones mínimas (tabla 6, numeral 9.7).
 - **Antecedente:** expediente PCES de una casa habitación en Jalapa 124, Col. Roma (proyecto escolar, CECyT 11), usado como caso de prueba.
 
@@ -102,7 +102,7 @@ _(completar con las consultas y resultados reales de la base de conocimientos)_
 Ejemplo de solicitud a la API:
 
 ```bash
-curl -X POST https://URL/api/evaluar -H "Content-Type: application/json" -d '{"etapa": "diseno", "medidas": ["..."]}'
+curl -X POST https://pces-experto.onrender.com/api/evaluar -H "Content-Type: application/json" -d '{"etapa": "diseno", "medidas": ["..."]}'
 ```
 
 ## Uso de IA generativa
