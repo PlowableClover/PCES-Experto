@@ -34,6 +34,7 @@
 :- http_handler(root(api/salud), salud, []).
 :- http_handler(root(api/catalogo), catalogo, []).
 :- http_handler(root(api/evaluar), evaluar, [method(post)]).
+:- http_handler(root(api/caso), caso, []).
 :- http_handler(root(.), archivos, [prefix]).
 
 main :-
@@ -47,6 +48,12 @@ archivos(Request) :-
     http_reply_from_files(Pub, [indexes(['index.html'])], Request), !.
 archivos(Request) :-
     http_404([], Request).
+
+% GET /api/caso -> medidas del caso de prueba (si está definido)
+caso(_) :-
+    una(caso_prueba(jalapa_124, L), L, Res),
+    (   is_list(Res) -> Medidas = Res ; Medidas = [] ),
+    reply_json_dict(_{caso: "jalapa_124", medidas: Medidas}).
 
 salud(_) :-
     reply_json_dict(_{estado: "ok"}).
@@ -68,7 +75,7 @@ accion_json(_{id: Id, nombre: N, rubro: R, tipo: T}) :-
     accion(Id, R, T), nombre_de(accion, Id, N).
 
 medida_json(_{id: Id, nombre: N, acciones: As}) :-
-    setof(M, A^medida(M, A), Ids), member(Id, Ids),
+    findall(M, medida(M, _), Ids0), list_to_set(Ids0, Ids), member(Id, Ids),
     findall(A, medida(Id, A), As0), list_to_set(As0, As),
     nombre_de(medida, Id, N).
 
@@ -126,27 +133,28 @@ es_medida(M) :- medida(M, _), !.
 responder(Etapa, M) :-
     una(dictamen(M, D), D, Dict),
     todas(A, accion_cubierta(M, A), Cub),
+    todas(A1, accion_opcional_cubierta(M, A1), Opc),
     todas(A2, minima_faltante(M, A2), Falt),
     todas(A3-Me, sugerencia(M, A3, Me), Sug),
     todas(R, rubro_sin_accion(M, R), SinAcc),
-    todas(A4-I-U, indicador_reportar(M, A4, I, U), Ind),
-    todas(T, evidencia_requerida(Etapa, M, T), Evid),
+    todas(I-Ru-Mt, indicador_reportar(I, Ru, Mt), Ind),
+    todas(A4-Ev, (accion_cubierta(M, A4), evidencia_accion(A4, Ev)), Docs),
     todas(T2, explicacion(Etapa, M, T2), Expl),
     una(avance(M, C, Tot), C-Tot, Av),
     maplist(accion_item, Cub, CubJ),
     maplist(accion_item, Falt, FaltJ),
     maplist(sug_item, Sug, SugJ),
     maplist(rubro_item, SinAcc, SinJ),
-    maplist(ind_item, Ind, IndJ),
-    maplist(texto, Evid, EvJ),
+    maplist(ind_item(Etapa), Ind, IndJ),
+    maplist(doc_item, Docs, DocJ),
     maplist(texto, Expl, ExJ),
     (   Av = C1-T1 -> AvJ = _{cubiertas: C1, total: T1} ; AvJ = null ),
     length(M, NM),
     reply_json_dict(_{ok: true, etapa: Etapa, dictamen: Dict, seleccionadas: NM,
-                      acciones_cubiertas: CubJ, minimas_faltantes: FaltJ,
-                      sugerencias: SugJ, rubros_sin_accion: SinJ,
-                      indicadores: IndJ, evidencias: EvJ, explicacion: ExJ,
-                      avance: AvJ}).
+                      acciones_cubiertas: CubJ, opcionales_cubiertas: Opc,
+                      minimas_faltantes: FaltJ, sugerencias: SugJ,
+                      rubros_sin_accion: SinJ, indicadores: IndJ,
+                      documentacion: DocJ, explicacion: ExJ, avance: AvJ}).
 
 % una/3: primera solución de Meta (null si falla, no existe o hay error)
 una(Meta, Plantilla, Res) :-
@@ -167,8 +175,16 @@ sug_item(A-M, _{accion: A, accion_nombre: NA, medida: M, medida_nombre: NM}) :-
 rubro_item(Id, _{id: Id, nombre: N}) :-
     ( rubro(Id, N0) -> texto(N0, N) ; texto(Id, N) ).
 
-ind_item(A-I-U, _{accion: A, accion_nombre: NA, indicador: IT, unidad: UT}) :-
-    nombre_de(accion, A, NA), texto(I, IT), texto(U, UT).
+% indicador_reportar(Indicador, Rubro, Metrica) y su evidencia de línea base según la etapa
+ind_item(Etapa, I-R-Mt, _{id: I, rubro: R, rubro_nombre: RN, indicador: IT, metrica: MT, evidencia: ET}) :-
+    rubro_item(R, _{id: _, nombre: RN}),
+    ( catch(indicador(I, _, Txt, _, _, _), _, fail) -> texto(Txt, IT) ; texto(I, IT) ),
+    texto(Mt, MT),
+    una(evidencia_linea_base(Etapa, I, E), E, E1),
+    ( E1 == null -> ET = null ; texto(E1, ET) ).
+
+doc_item(A-Ev, _{accion: A, accion_nombre: NA, documento: DT}) :-
+    nombre_de(accion, A, NA), texto(Ev, DT).
 
 texto(T, S) :- string(T), !, S = T.
 texto(T, S) :- format(string(S), "~w", [T]).

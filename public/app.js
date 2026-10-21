@@ -2,9 +2,9 @@
 // Solo envía datos al servidor y muestra lo que responde Prolog:
 // aquí no se decide ninguna conclusión.
 
-// Medidas de la casa de Jalapa 124 (expediente PCES del CECyT 11).
-// Escribe aquí los identificadores tal como los definiste en base_conocimiento.pl.
-const CASO_JALAPA = [];
+// Medidas del caso de prueba Jalapa 124: se leen de caso_prueba/2 en Prolog.
+let CASO_JALAPA = [];
+const UNIDAD = { kwh: 'kWh', m3: 'm³', m2: 'm²', kg: 'kg', joules: 'J', personas: 'personas', toneladas_co2e: 't CO₂e', costo_adquisicion: 'Costo de adquisición' };
 
 const $ = (s) => document.querySelector(s);
 let cat = { rubros: [], acciones: [], medidas: [] };
@@ -20,6 +20,7 @@ async function cargarCatalogo() {
     const r = await fetch('/api/catalogo');
     if (!r.ok) throw new Error('HTTP ' + r.status);
     cat = await r.json();
+    try { const c = await (await fetch('/api/caso')).json(); CASO_JALAPA = c.medidas || []; } catch (_) { CASO_JALAPA = []; }
     pintarLista();
   } catch (e) {
     $('#lista').innerHTML = `<p class="error">No se pudo obtener el catálogo del servidor (${esc(e.message)}). Si el servicio estaba dormido, espera unos segundos y recarga.</p>`;
@@ -96,20 +97,28 @@ function mostrar(d) {
   const porAccion = {};
   d.sugerencias.forEach((x) => (porAccion[x.accion_nombre] ||= []).push(x.medida_nombre));
 
+  // Agrupaciones solo de presentación
+  const indPorRubro = {};
+  d.indicadores.forEach((i) => (indPorRubro[i.rubro_nombre] ||= []).push(i));
+  const docPorAccion = {};
+  d.documentacion.forEach((x) => (docPorAccion[x.accion_nombre] ||= []).push(x.documento));
+
   s.innerHTML = `
     <div class="nivel ${clase}"><small>Dictamen · etapa de ${etapaTxt}</small><span>${esc(etiqueta)}</span>${av}</div>
     ${d.explicacion.length ? bloque('Por qué', null, ul(d.explicacion.map((t) => `<li>${esc(t)}</li>`), 'expl', '')) : ''}
     ${bloque('Acciones mínimas faltantes', d.minimas_faltantes.length,
-      ul(d.minimas_faltantes.map((a) => `<li>${esc(bonito(a.nombre))}</li>`), 'falt', 'Cubre las cuatro acciones mínimas.'))}
-    ${bloque('Medidas sugeridas', d.sugerencias.length,
-      ul(Object.entries(porAccion).map(([a, ms]) => `<li><span>${esc(bonito(a))}</span><small>${ms.map((m) => esc(bonito(m))).join(' · ')}</small></li>`), 'rec', 'El sistema no tiene sugerencias para esta combinación.'))}
+      ul(d.minimas_faltantes.map((a) => `<li>${esc(bonito(a.nombre))}</li>`), 'falt', 'Cubre las cuatro acciones mínimas del numeral 9.7.'))}
+    ${d.sugerencias.length ? bloque('Medidas sugeridas para las mínimas faltantes', d.sugerencias.length,
+      ul(Object.entries(porAccion).map(([a, ms]) => `<li><span>${esc(bonito(a))}</span><small>${ms.map((m) => esc(bonito(m))).join(' · ')}</small></li>`), 'rec', '')) : ''}
     ${bloque('Acciones cubiertas', d.acciones_cubiertas.length,
-      ul(d.acciones_cubiertas.map((a) => `<li><span>${esc(bonito(a.nombre))}</span><small>${a.tipo ? esc(bonito(a.tipo)) : ''}</small></li>`), 'ok', 'Ninguna acción cubierta.'))}
+      ul(d.acciones_cubiertas.map((a) => `<li><span>${esc(bonito(a.nombre))}</span><small>${a.tipo === 'minima' ? 'Mínima' : 'Opcional'}</small></li>`), 'ok', 'Ninguna acción cubierta.'))}
     ${d.rubros_sin_accion.length ? bloque('Rubros sin ninguna acción', d.rubros_sin_accion.length,
       ul(d.rubros_sin_accion.map((r) => `<li>${esc(bonito(r.nombre))}</li>`), 'falt', '')) : ''}
-    ${d.indicadores.length ? bloque('Indicadores que deberá reportar', d.indicadores.length,
-      `<table class="tabla"><thead><tr><th>Acción</th><th>Indicador</th><th>Unidad</th></tr></thead><tbody>${d.indicadores.map((i) => `<tr><td>${esc(bonito(i.accion_nombre))}</td><td>${esc(i.indicador)}</td><td>${esc(i.unidad)}</td></tr>`).join('')}</tbody></table>`) : ''}
-    ${d.evidencias.length ? bloque(`Evidencias requeridas (${etapaTxt})`, d.evidencias.length, ul(d.evidencias.map((t) => `<li>${esc(t)}</li>`), 'expl', '')) : ''}
+    ${d.indicadores.length ? bloque(`Indicadores a reportar y evidencia de línea base (${etapaTxt})`, d.indicadores.length,
+      Object.entries(indPorRubro).map(([r, is]) => `<h4>${esc(r)}</h4><table class="tabla"><thead><tr><th>Indicador</th><th>Unidad</th><th>Evidencia</th></tr></thead><tbody>${is.map((i) => `<tr><td>${esc(i.indicador)}</td><td>${esc(UNIDAD[i.metrica] || i.metrica)}</td><td>${esc(i.evidencia ?? '—')}</td></tr>`).join('')}</tbody></table>`).join('')
+      + '<p class="nota">Numeral 7.4: los indicadores se reportan para toda edificación, aplique o no acciones de sustentabilidad.</p>') : ''}
+    ${d.documentacion.length ? bloque('Documentación de las acciones cubiertas', Object.keys(docPorAccion).length,
+      Object.entries(docPorAccion).map(([a, ds]) => `<details class="doc"><summary>${esc(bonito(a))} <span class="num">${ds.length}</span></summary><ul>${ds.map((t) => `<li>${esc(t)}</li>`).join('')}</ul></details>`).join('')) : ''}
     <details class="json"><summary>Ver respuesta de Prolog (JSON)</summary><pre>${esc(JSON.stringify(d, null, 2))}</pre></details>`;
 }
 

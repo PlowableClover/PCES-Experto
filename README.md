@@ -44,20 +44,16 @@ El servidor solo acepta una etapa válida e identificadores que existan en `medi
 
 | Predicado | Uso |
 |---|---|
-| `rubro(Id, Nombre)` | Los cinco rubros del PCES |
-| `accion(Id, Rubro, Tipo)` | Acciones de sustentabilidad; `Tipo` es `minima` u `opcional` |
-| `nombre_accion(Id, Texto)` | (opcional) Nombre legible de la acción |
-| `medida(Id, Accion)` | Medida concreta y acción que cubre (una medida puede cubrir varias) |
-| `nombre_medida(Id, Texto)` | (opcional) Nombre legible de la medida |
-| `dictamen(Medidas, Dictamen)` | `acredita` o `no_acredita` |
-| `accion_cubierta(Medidas, Accion)` | Acciones cubiertas (varias soluciones) |
-| `minima_faltante(Medidas, Accion)` | Acciones mínimas que faltan (varias soluciones) |
-| `sugerencia(Medidas, Accion, Medida)` | Medidas que cubrirían una acción faltante |
-| `rubro_sin_accion(Medidas, Rubro)` | Rubros sin ninguna acción cubierta |
-| `indicador_reportar(Medidas, Accion, Indicador, Unidad)` | Indicadores que se deben reportar |
-| `evidencia_requerida(Etapa, Medidas, Texto)` | Evidencias según la etapa |
-| `explicacion(Etapa, Medidas, Texto)` | (opcional) Explicación de la conclusión |
-| `avance(Medidas, Cubiertas, Total)` | (opcional) Acciones cubiertas del total |
+| `rubro/2`, `accion/3`, `nombre_accion/2`, `medida/2`, `nombre_medida/2` | Catálogo para construir el formulario |
+| `dictamen/2` | `acredita` o `no_acredita` (numeral 9.7) |
+| `accion_cubierta/2`, `accion_opcional_cubierta/2` | Acciones cubiertas por las medidas (varias soluciones) |
+| `minima_faltante/2` | Acciones mínimas que faltan (varias soluciones) |
+| `sugerencia/3` | Medidas que cubrirían una acción mínima faltante |
+| `rubro_sin_accion/2` | Rubros sin ninguna acción cubierta |
+| `avance/3` | Acciones cubiertas del total (conteo recursivo) |
+| `indicador_reportar/3`, `evidencia_linea_base/3` | Indicadores de las tablas 1 a 5 y su evidencia según la etapa |
+| `evidencia_accion/2` | Documentación de cada acción cubierta |
+| `caso_prueba/2` | Caso de prueba Jalapa 124 (solo para el botón de la interfaz; no interviene en las reglas) |
 
 ## Ejecución local
 
