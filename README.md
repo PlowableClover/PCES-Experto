@@ -92,11 +92,28 @@ En el plan gratuito el servicio se suspende tras unos 15 minutos sin uso; la pri
 
 ## Ejemplos de consultas
 
-_(completar con las consultas y resultados reales de la base de conocimientos)_
+Las 12 consultas de prueba de la sección D de `base_conocimiento.pl`, con los resultados obtenidos en SWI-Prolog (`;` pide la siguiente solución):
+
+| # | Consulta | Resultado obtenido |
+|---|---|---|
+| 1 | `dictamen([], D).` | `D = no_acredita.` |
+| 2 | `minima_faltante([], A).` | `reduccion_consumo_electrico ; reduccion_consumo_agua ; reduccion_valorizacion_residuos ; uso_materiales_reciclados` |
+| 3 | `dictamen([luminarias_eficientes, inodoros_eficientes, reciclaje_residuos, uso_materiales_contenido_reciclado], D).` | `D = acredita.` |
+| 4 | `minima_faltante([luminarias_eficientes, inodoros_eficientes, reciclaje_residuos], A).` | `A = uso_materiales_reciclados.` |
+| 5 | `sugerencia([luminarias_eficientes, reciclaje_residuos, uso_materiales_contenido_reciclado], reduccion_consumo_agua, M).` | `inodoros_eficientes ; regaderas_bajo_flujo ; griferia_bajo_consumo ; riego_eficiente` |
+| 6 | `accion_cubierta([paneles_fotovoltaicos], A).` | `A = energia_renovable.` |
+| 7 | `rubro_sin_accion([luminarias_eficientes], R).` | `agua ; residuos ; calidad_vida ; impactos_ambientales` |
+| 8 | `accion_opcional_cubierta([paneles_fotovoltaicos, captacion_agua_pluvial, naturacion_muros], A).` | `energia_renovable ; superficie_area_verde ; uso_agua_pluvial_tratada` |
+| 9 | `avance([luminarias_eficientes, equipos_bombeo_eficientes], C, T).` | `C = 1, T = 10.` |
+| 10 | `avance([...una medida por cada una de las 10 acciones...], C, T).` | `C = T, T = 10.` |
+| 11 | `indicador_reportar(I, agua, M).` | 6 soluciones, todas con `M = m3` |
+| 12 | `evidencia_linea_base(diseno, consumo_agua_potable_red, E).` / `evidencia_linea_base(operacion, consumo_agua_potable_red, E).` | `"Proyección de acuerdo a la memoria de cálculo"` / `"Recibo de SACMEX"` |
+
+Caso completo de la casa Jalapa 124:
 
 ```prolog
-?- dictamen([...], D).
-?- minima_faltante([...], A).
+?- caso_prueba(jalapa_124, M), dictamen(M, D), avance(M, C, T).
+D = acredita, C = 8, T = 10.
 ```
 
 Ejemplo de solicitud a la API:
